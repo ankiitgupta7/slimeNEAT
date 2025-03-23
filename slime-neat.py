@@ -9,6 +9,8 @@ import gym
 import slimevolleygym
 import neat
 import os
+from viz import BestGenomeSaver, create_evolution_gif, plot_fitness
+
 
 # Mapping from discrete action index (0–5) to a 3-element action vector.
 ACTION_MAPPING = {
@@ -72,9 +74,17 @@ def run_neat(config_file):
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
 
+    # <-- Add BestGenomeSaver here:
+    best_genome_saver = BestGenomeSaver(config)
+    pop.add_reporter(best_genome_saver)
+
     winner = pop.run(eval_genomes, 50)
 
     print("\nBest genome:\n", winner)
+
+    # After training, create the evolution GIF and plot fitness over generations.
+    create_evolution_gif()
+    plot_fitness(best_genome_saver.best_fitness_over_time)
 
     test_winner(winner, config, n_episodes=10)
 
