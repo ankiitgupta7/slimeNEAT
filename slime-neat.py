@@ -35,43 +35,38 @@ def normalize_obs(obs):
     position_indices = [0, 1, 4, 5, 8, 9]
     velocity_indices = [2, 3, 6, 7, 10, 11]
 
-    obs_norm[position_indices] = obs_norm[position_indices] / 1.0   # already 0 to 1
-    obs_norm[velocity_indices] = obs_norm[velocity_indices] / 5.0   # approximately -5 to 5
+    obs_norm[position_indices] /= 1.0   # already 0 to 1 range
+    obs_norm[velocity_indices] /= 5.0   # velocities scaled to [-1,1] approximately
 
     return obs_norm
 
 
-def eval_genomes(genomes, config):
-    """
-    Evaluate each genome by letting it control the 'left' agent in SlimeVolleyGym.
-    Run 3 episodes and average the fitness.
-    """
-    for genome_id, genome in genomes:
-        net = neat.nn.FeedForwardNetwork.create(genome, config)
-
-        n_episodes = 10
-        total_reward = 0.0
-
-        for _ in range(n_episodes):
-            env = make_env()
-            obs = env.reset()
-            done = False
-            ep_reward = 0.0
-
-            while not done:
-                obs_norm = normalize_obs(obs)
-                action_values = net.activate(obs_norm)
-                discrete_action = int(np.argmax(action_values))
-                action = ACTION_MAPPING[discrete_action]
-                obs, reward, done, info = env.step(action)
-                ep_reward += reward
+def eval_genome(genome, config):
+    net = neat.nn.FeedForwardNetwork.create(genome, config)
+    n_episodes = 5
+    total_reward = 0.0
+    for _ in range(n_episodes):
+        env = make_env()
+        obs = env.reset()
+        done = False
+        ep_reward = 0.0
+        steps_survived = 0
+        while not done:
+            obs_norm = normalize_obs(obs)
+            action_values = net.activate(obs_norm)
+            discrete_action = int(np.argmax(action_values))
+            action = ACTION_MAPPING[discrete_action]
+            obs, reward, done, info = env.step(action)
+            ep_reward += reward
+            steps_survived += 1
+        total_reward += ep_reward + (steps_survived / 3000.0)
+        env.close()
+    genome.fitness = total_reward / n_episodes
+    return genome.fitness
 
 
-
-            total_reward += ep_reward
-            env.close()
-
-        genome.fitness = total_reward / n_episodes
+from neat.parallel import ParallelEvaluator
+import multiprocessing
 
 def run_neat(config_file):
     config = neat.Config(
@@ -88,19 +83,22 @@ def run_neat(config_file):
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
 
-    # <-- Add BestGenomeSaver here:
     best_genome_saver = BestGenomeSaver(config)
     pop.add_reporter(best_genome_saver)
 
-    winner = pop.run(eval_genomes, 300)
+    # Use the correct single-genome evaluation function with ParallelEvaluator
+    num_workers = multiprocessing.cpu_count()
+    pe = ParallelEvaluator(num_workers, eval_genome)
+
+    winner = pop.run(pe.evaluate, 300)  # <-- Corrected call (CRUCIAL FIX)
 
     print("\nBest genome:\n", winner)
 
-    # After training, create the evolution GIF and plot fitness over generations.
     create_evolution_gif()
     plot_fitness(best_genome_saver.best_fitness_over_time)
 
     test_winner(winner, config, n_episodes=10)
+
 
 def test_winner(genome, config, n_episodes=10):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
