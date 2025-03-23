@@ -30,6 +30,17 @@ def make_env():
     env = gym.make("SlimeVolley-v0")
     return env
 
+def normalize_obs(obs):
+    obs_norm = obs.copy()
+    position_indices = [0, 1, 4, 5, 8, 9]
+    velocity_indices = [2, 3, 6, 7, 10, 11]
+
+    obs_norm[position_indices] = obs_norm[position_indices] / 1.0   # already 0 to 1
+    obs_norm[velocity_indices] = obs_norm[velocity_indices] / 5.0   # approximately -5 to 5
+
+    return obs_norm
+
+
 def eval_genomes(genomes, config):
     """
     Evaluate each genome by letting it control the 'left' agent in SlimeVolleyGym.
@@ -38,7 +49,7 @@ def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-        n_episodes = 3
+        n_episodes = 10
         total_reward = 0.0
 
         for _ in range(n_episodes):
@@ -48,11 +59,14 @@ def eval_genomes(genomes, config):
             ep_reward = 0.0
 
             while not done:
-                action_values = net.activate(obs)
+                obs_norm = normalize_obs(obs)
+                action_values = net.activate(obs_norm)
                 discrete_action = int(np.argmax(action_values))
                 action = ACTION_MAPPING[discrete_action]
                 obs, reward, done, info = env.step(action)
                 ep_reward += reward
+
+
 
             total_reward += ep_reward
             env.close()
@@ -78,7 +92,7 @@ def run_neat(config_file):
     best_genome_saver = BestGenomeSaver(config)
     pop.add_reporter(best_genome_saver)
 
-    winner = pop.run(eval_genomes, 50)
+    winner = pop.run(eval_genomes, 300)
 
     print("\nBest genome:\n", winner)
 
@@ -99,7 +113,9 @@ def test_winner(genome, config, n_episodes=10):
         ep_reward = 0.0
 
         while not done:
-            action_values = net.activate(obs)
+            obs_norm = normalize_obs(obs)
+            action_values = net.activate(obs_norm)
+
             discrete_action = int(np.argmax(action_values))
             action = ACTION_MAPPING[discrete_action]
             obs, reward, done, info = env.step(action)
