@@ -2,9 +2,12 @@
 import os
 import neat
 import networkx as nx
+import matplotlib
 import matplotlib.pyplot as plt
 import imageio
 import matplotlib.colors as mcolors
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # Folder to save visualizations
 VISUALIZATION_FOLDER = "visualizations_slime"

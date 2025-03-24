@@ -83,7 +83,7 @@ def eval_genome(genome, config):
     genome.fitness = total_fitness / n_episodes
     return genome.fitness
 
-def test_winner(genome, config, n_episodes=10):
+def test_winner(genome, config, n_episodes):
     """
     Tests the best genome over a specified number of episodes using the default env scoring.
     """
@@ -134,14 +134,14 @@ def run_neat(config_file):
     pe = ParallelEvaluator(num_workers, eval_genome)
 
     # Try e.g. 300-500 generations
-    winner = pop.run(pe.evaluate, 3000)
+    winner = pop.run(pe.evaluate, 1000)
 
     print("\nBest genome:\n", winner)
     create_evolution_gif()
     plot_fitness(best_genome_saver.best_fitness_over_time)
 
     # Thorough test on 20 episodes
-    test_winner(winner, config, n_episodes=20)
+    test_winner(winner, config, n_episodes=2000)
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
