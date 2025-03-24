@@ -132,9 +132,10 @@ def create_evolution_gif():
     images = []
     # Sort images by generation number.
     files = sorted(
-        os.listdir(VISUALIZATION_FOLDER),
+        [f for f in os.listdir(VISUALIZATION_FOLDER) if f.startswith("gen_")],
         key=lambda x: int(x.split('_')[1].split('.')[0])
     )
+
     for file in files:
         image_path = os.path.join(VISUALIZATION_FOLDER, file)
         images.append(imageio.imread(image_path))

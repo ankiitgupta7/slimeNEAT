@@ -9,6 +9,7 @@ import gym
 import slimevolleygym
 import neat
 import os
+import pickle  # For saving the best genome
 from viz import BestGenomeSaver, create_evolution_gif, plot_fitness
 
 # For parallel evaluation (optional):
@@ -42,18 +43,18 @@ def normalize_obs(obs):
     position_indices = [0, 1, 4, 5, 8, 9]
     velocity_indices = [2, 3, 6, 7, 10, 11]
 
-    obs_norm[position_indices] /= 1.0  # Already 0..1 in normal usage
+    obs_norm[position_indices] /= 1.0  # Already in 0..1 range
     obs_norm[velocity_indices] /= 5.0  # Scale velocities to ~[-1,1]
     return obs_norm
 
 def eval_genome(genome, config):
     """
     Evaluates a single genome with partial step-based reward,
-    but at a smaller value to avoid overshadowing +/- 1 scoring.
+    but with a very small step bonus to avoid overshadowing the ±1 scoring.
     """
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    n_episodes = 10  # Evaluate over more episodes -> more stable fitness
+    n_episodes = 10  # Evaluate over 10 episodes for a stable fitness estimate
     total_fitness = 0.0
 
     for _ in range(n_episodes):
@@ -68,24 +69,21 @@ def eval_genome(genome, config):
             discrete_action = int(np.argmax(action_values))
             action = ACTION_MAPPING[discrete_action]
 
-            # Step in environment
             obs, reward, done, info = env.step(action)
-
-            # Standard SlimeVolley reward is +1 if opponent loses a life, -1 if we lose a life
-            # We'll add a very small step-based reward, e.g., +0.001 per time-step
+            # Add the environment's reward plus a very small step bonus
             ep_reward += reward
-            ep_reward += 0.001  # Very small partial credit for each step
+            ep_reward += 0.001  # Very small bonus per time-step
 
         env.close()
         total_fitness += ep_reward
 
-    # Average the fitness across episodes
     genome.fitness = total_fitness / n_episodes
     return genome.fitness
 
 def test_winner(genome, config, n_episodes):
     """
-    Tests the best genome over a specified number of episodes using the default env scoring.
+    Tests the best genome over a specified number of episodes using the default environment scoring.
+    Returns the average reward.
     """
     net = neat.nn.FeedForwardNetwork.create(genome, config)
     total_reward = 0.0
@@ -111,6 +109,23 @@ def test_winner(genome, config, n_episodes):
 
     avg_reward = total_reward / n_episodes
     print(f"Average reward over {n_episodes} test episodes: {avg_reward}")
+    return avg_reward
+
+def save_best_genome(genome, filename="best_genome.pkl"):
+    """
+    Saves the best genome to a file using pickle.
+    """
+    with open(filename, "wb") as f:
+        pickle.dump(genome, f)
+    print(f"Saved best genome to {filename}")
+
+def log_final_test_score(score, filename="final_test_score.txt"):
+    """
+    Logs the final test score to a file.
+    """
+    with open(filename, "w") as f:
+        f.write(f"Final average test reward: {score}\n")
+    print(f"Logged final test score to {filename}")
 
 def run_neat(config_file):
     config = neat.Config(
@@ -129,19 +144,25 @@ def run_neat(config_file):
     best_genome_saver = BestGenomeSaver(config)
     pop.add_reporter(best_genome_saver)
 
-    # Evaluate single-genome in parallel
+    # Use ParallelEvaluator for faster evaluation using all available CPU cores.
     num_workers = multiprocessing.cpu_count()
     pe = ParallelEvaluator(num_workers, eval_genome)
 
-    # Try e.g. 300-500 generations
-    winner = pop.run(pe.evaluate, 1000)
+    # Run evolution for 1000 generations (or your desired number)
+    winner = pop.run(pe.evaluate, 550)
 
     print("\nBest genome:\n", winner)
+    # Save the best genome for future reference
+    save_best_genome(winner, "best_genome.pkl")
+
     create_evolution_gif()
     plot_fitness(best_genome_saver.best_fitness_over_time)
 
-    # Thorough test on 20 episodes
-    test_winner(winner, config, n_episodes=2000)
+    # Thoroughly test the best genome over 2000 episodes
+    print("\nTesting the best genome performance with internal agent...")
+    final_score = test_winner(winner, config, n_episodes=200)
+    # Log the final test score to a file
+    log_final_test_score(final_score, "final_test_score.txt")
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
