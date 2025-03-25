@@ -34,7 +34,7 @@ def visualize_genome(genome, config, generation, fitness):
     """
     G = nx.DiGraph()
 
-    # Define node groups
+    # Define node groups:
     input_nodes = sorted(range(-config.genome_config.num_inputs, 0))
     output_nodes = sorted(range(config.genome_config.num_outputs))
     hidden_nodes = sorted(set(genome.nodes.keys()) - set(input_nodes) - set(output_nodes))
@@ -48,11 +48,13 @@ def visualize_genome(genome, config, generation, fitness):
 
     # Assign nodes to layers.
     node_layers, max_layer = assign_node_layers(genome, connections, config.genome_config.num_inputs)
-    # Make sure all hidden nodes are assigned.
-    for node in hidden_nodes:
+    
+    # Ensure all hidden and output nodes have a layer assigned.
+    for node in hidden_nodes + output_nodes:
         if node not in node_layers:
-            node_layers[node] = 1
-
+            node_layers[node] = max_layer + 1
+            max_layer = max(max_layer, node_layers[node])
+    
     # Calculate positions for each node.
     layer_positions = {}
     node_layers_sorted = {layer: [] for layer in range(max_layer + 1)}
