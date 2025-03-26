@@ -68,7 +68,7 @@ def eval_genome(genome, config):
             obs, reward, done, info = env.step(action)
             # Add the environment's reward plus a very small step bonus
             ep_reward += reward
-            ep_reward += 0.001  # Very small bonus per time-step
+            ep_reward += 0.0001  # Very small bonus per time-step
 
         env.close()
         total_fitness += ep_reward
