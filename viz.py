@@ -1,4 +1,3 @@
-# viz.py
 import os
 import neat
 import networkx as nx
@@ -26,15 +25,9 @@ def assign_node_layers(genome, connections, num_inputs):
     return node_layers, max_layer
 
 def visualize_genome(genome, config, generation, fitness):
-    """
-    Draws the network topology of a genome.
-    The resulting image shows nodes (input, hidden, output) with labels,
-    and edges colored by weight magnitude.
-    The title displays the generation number and fitness.
-    """
     G = nx.DiGraph()
 
-    # Define node groups:
+    # Define node groups
     input_nodes = sorted(range(-config.genome_config.num_inputs, 0))
     output_nodes = sorted(range(config.genome_config.num_outputs))
     hidden_nodes = sorted(set(genome.nodes.keys()) - set(input_nodes) - set(output_nodes))
@@ -48,13 +41,11 @@ def visualize_genome(genome, config, generation, fitness):
 
     # Assign nodes to layers.
     node_layers, max_layer = assign_node_layers(genome, connections, config.genome_config.num_inputs)
-    
-    # Ensure all hidden and output nodes have a layer assigned.
-    for node in hidden_nodes + output_nodes:
+    # Make sure all hidden nodes are assigned.
+    for node in hidden_nodes:
         if node not in node_layers:
-            node_layers[node] = max_layer + 1
-            max_layer = max(max_layer, node_layers[node])
-    
+            node_layers[node] = 1
+
     # Calculate positions for each node.
     layer_positions = {}
     node_layers_sorted = {layer: [] for layer in range(max_layer + 1)}
@@ -137,7 +128,6 @@ def create_evolution_gif():
         [f for f in os.listdir(VISUALIZATION_FOLDER) if f.startswith("gen_")],
         key=lambda x: int(x.split('_')[1].split('.')[0])
     )
-
     for file in files:
         image_path = os.path.join(VISUALIZATION_FOLDER, file)
         images.append(imageio.imread(image_path))
