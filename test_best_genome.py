@@ -12,11 +12,11 @@ import json
 # Use the same action mapping as before
 ACTION_MAPPING = {
     0: [0, 0, 0],    # do nothing
-    1: [-1, 0, 0],   # move left
-    2: [1, 0, 0],    # move right
-    3: [0, 1, 0],    # jump
-    4: [-1, 1, 0],   # jump left
-    5: [1, 1, 0]     # jump right
+    1: [1, 0, 0],    # move left
+    2: [0, 1, 0],    # move right
+    3: [0, 0, 1],    # jump
+    4: [1, 0, 1],    # jump + left
+    5: [0, 1, 1]     # jump + right
 }
 
 def make_env():
