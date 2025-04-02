@@ -4,7 +4,7 @@ np.bool8 = bool    # <<< ADD THIS
 import gym
 import slimevolleygym
 
-def evaluate_baseline(n_episodes: int = 100):
+def evaluate_baseline(n_episodes: int = 1000):
     env = gym.make("SlimeVolley-v0")
     total_score = 0.0
 

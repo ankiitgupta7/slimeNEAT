@@ -15,11 +15,11 @@ import multiprocessing
 # ACTION_MAPPING from discrete (6) to MultiBinary(3)
 ACTION_MAPPING = {
     0: [0, 0, 0],    # do nothing
-    1: [-1, 0, 0],   # move left
-    2: [1, 0, 0],    # move right
-    3: [0, 1, 0],    # jump
-    4: [-1, 1, 0],   # jump + left
-    5: [1, 1, 0]     # jump + right
+    1: [1, 0, 0],    # move left
+    2: [0, 1, 0],    # move right
+    3: [0, 0, 1],    # jump
+    4: [1, 0, 1],    # jump + left
+    5: [0, 1, 1]     # jump + right
 }
 
 def make_env():
@@ -68,7 +68,7 @@ def eval_genome(genome, config):
             obs, reward, done, info = env.step(action)
             # Add the environment's reward plus a very small step bonus
             ep_reward += reward
-            ep_reward += 0.0001  # Very small bonus per time-step
+            ep_reward += 0.001  # Very small bonus per time-step
 
         env.close()
         total_fitness += ep_reward
